@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.7)
 project(thermal_seek_xr_image_streamer)
 
 set(CMAKE_CXX_STANDARD 14)
@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 find_package( OpenCV REQUIRED )
 
 link_directories(
-        /home/atomicbomber/CLionProjects/libseek-thermal/cmake-build-debug/src
+        /home/atomicbomber/CLionProjects/libseek-thermal/build/src
 )
 
 link_libraries(
