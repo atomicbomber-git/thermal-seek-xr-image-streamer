@@ -21,6 +21,10 @@ using namespace LibSeek;
 // Setup sig handling
 static volatile sig_atomic_t sigflag = 0;
 
+enum CustomLineTypes {
+    LINE_AA = 16
+};
+
 auto isConnectedToServer = false;
 auto isWindowMode = true;
 auto fireWarningText = "WARNING";
@@ -75,12 +79,12 @@ void draw_temp(Mat &outframe, double temp, const Point &coord, Scalar color)
 {
     char txt[64];
     sprintf(txt, "%5.1f", temp);
-    putText(outframe, txt, coord - Point(40, -20), FONT_HERSHEY_COMPLEX, 1, std::move(color), 2, LINE_AA);
+    putText(outframe, txt, coord - Point(40, -20), FONT_HERSHEY_COMPLEX, 1, std::move(color), 2, CustomLineTypes::LINE_AA);
 }
 
 void draw_text(Mat &outframe, const char* text, const Point &coord, Scalar color)
 {
-    putText(outframe, text, coord - Point(40, -20), FONT_HERSHEY_COMPLEX, 1, std::move(color), 2, LINE_AA);
+    putText(outframe, text, coord - Point(40, -20), FONT_HERSHEY_COMPLEX, 1, std::move(color), 2, CustomLineTypes::LINE_AA);
 }
 
 // Function to process a raw (corrected) seek frame
@@ -291,7 +295,7 @@ int main(int argc, char **argv)
             1,
             Scalar(0, 0, 0),
             1.5, /* Thickness */
-            LINE_AA);
+            CustomLineTypes::LINE_AA);
 
         if (!isWindowMode)
         {
