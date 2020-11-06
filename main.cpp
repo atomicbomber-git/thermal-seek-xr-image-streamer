@@ -100,8 +100,8 @@ void process_frame(Mat &inframe, Mat &outframe, float scale, int colormap, int r
     double maxtemp = temp_from_raw(max, device_k);
     double centraltemp = temp_from_raw(central, device_k);
 
-    printf("rmin,rmax,central,devtempsns: %d %d %d %d\t", (int)min, (int)max, (int)central, (int)device_temp_sensor);
-    printf("min-max-center-device: %.1f %.1f %.1f %.1f\n", mintemp, maxtemp, centraltemp, device_k - 273.0);
+    // printf("rmin,rmax,central,devtempsns: %d %d %d %d\t", (int)min, (int)max, (int)central, (int)device_temp_sensor);
+    // printf("min-max-center-device: %.1f %.1f %.1f %.1f\n", mintemp, maxtemp, centraltemp, device_k - 273.0);
 
     normalize(inframe, frame_g16, 0, 65535, NORM_MINMAX);
 
@@ -314,8 +314,18 @@ int main(int argc, char **argv)
         }
         else
         {
+            auto key = cv::waitKey(10);
+
+            if (key == 's') {
+                const auto now = std::chrono::system_clock::now();
+                auto imageCode = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+                char fileName[100];
+                sprintf(fileName, "%lu.jpeg", imageCode);
+                printf("Attempting to save image as %s.\n", fileName);
+                cv::imwrite(fileName, outFrame);
+            }
+
             cv::imshow(windowName, outFrame);
-            cv::waitKey(1);
         }
     }
 
