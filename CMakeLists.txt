@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 find_package( OpenCV REQUIRED )
 
 link_directories(
-        /home/atomicbomber/CLionProjects/libseek-thermal/build/src
+        /home/atomicbomber/clones/undera-libseek-thermal/build/src
 )
 
 link_libraries(
@@ -26,7 +26,7 @@ link_libraries(
 add_executable(thermal_seek_xr_image_streamer main.cpp args.h)
 
 include_directories(
-        /home/atomicbomber/CLionProjects/libseek-thermal/src
+        /home/atomicbomber/clones/undera-libseek-thermal/src
         ${OpenCV_INCLUDE_DIRS}
         /usr/include/libusb-1.0
 )
