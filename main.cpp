@@ -265,8 +265,8 @@ int main(int argc, char **argv)
     {
         std::cout << "Operating in window mode." << std::endl;
 
-        namedWindow(windowName, cv::WINDOW_NORMAL);
-        setWindowProperty(windowName, WindowPropertyFlags::WND_PROP_ASPECT_RATIO, cv::WINDOW_KEEPRATIO);
+        namedWindow(windowName, 0x00000000 /* WINWOD_NORMAL */);
+        setWindowProperty(windowName, 2 /* WND_PROP_ASPECT_RATIO */, 0x00000000 /* WINDOW_KEEPRATIO */);
         resizeWindow(windowName, seekFrame.cols, seekFrame.rows);
     }
 
