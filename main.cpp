@@ -62,7 +62,7 @@ double temp_from_raw(int x, double device_k)
 
     auto fahrenheit = base - device_k * lin_k + lin_offset - 273.0;
     // return (fahrenheit - 32.0) * 5.0 / 9.0;
-    return fahrenheit;
+    return fahrenheit - 17.8;
 }
 
 void overlay_values(Mat &outframe, Point coord, const Scalar &color)
