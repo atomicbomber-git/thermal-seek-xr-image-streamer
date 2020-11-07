@@ -61,7 +61,8 @@ double temp_from_raw(int x, double device_k)
     double lin_offset = -470.8979; // same Excel model
 
     auto fahrenheit = base - device_k * lin_k + lin_offset - 273.0;
-    return (fahrenheit - 32.0) * 5.0 / 9.0;
+    // return (fahrenheit - 32.0) * 5.0 / 9.0;
+    return fahrenheit;
 }
 
 void overlay_values(Mat &outframe, Point coord, const Scalar &color)
