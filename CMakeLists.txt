@@ -24,6 +24,8 @@ link_libraries(
 )
 
 add_executable(thermal_seek_xr_image_streamer main.cpp args.h)
+add_executable(streamer streamer.cpp args.h)
+
 
 include_directories(
         /home/atomicbomber/clones/undera-libseek-thermal/src

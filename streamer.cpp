@@ -1,6 +1,3 @@
-// Seek Thermal Viewer/Streamer
-// http://github.com/fnoop/maverick
-
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include "seek.h"
@@ -21,12 +18,22 @@ using namespace LibSeek;
 // Setup sig handling
 static volatile sig_atomic_t sigflag = 0;
 
-enum CustomLineTypes {
+enum CustomLineTypes
+{
     LINE_AA = 16
 };
 
-auto isConnectedToServer = false;
-auto isWindowMode = true;
+enum OperationMode
+{
+    ConnectToServer,
+    WaitForCommand,
+    SendImage,
+    Exit,
+};
+
+const auto DEFAULT_HOST = "127.0.0.1";
+const auto DEFAULT_PORT = 9000;
+
 auto fireWarningText = "WARNING";
 auto fireThresholdCelcius = 45;
 void connectToServer(sf::TcpSocket &socket, const char *remoteAddress, const int remotePort);
@@ -82,7 +89,7 @@ void draw_temp(Mat &outframe, double temp, const Point &coord, Scalar color)
     putText(outframe, txt, coord - Point(40, -20), FONT_HERSHEY_COMPLEX, 1, std::move(color), 2, CustomLineTypes::LINE_AA);
 }
 
-void draw_text(Mat &outframe, const char* text, const Point &coord, Scalar color)
+void draw_text(Mat &outframe, const char *text, const Point &coord, Scalar color)
 {
     putText(outframe, text, coord - Point(40, -20), FONT_HERSHEY_COMPLEX, 1, std::move(color), 2, CustomLineTypes::LINE_AA);
 }
@@ -183,7 +190,8 @@ void process_frame(Mat &inframe, Mat &outframe, float scale, int colormap, int r
     overlay_values(outframe, maxp + Point(1, 1), Scalar(255, 255, 255));
     overlay_values(outframe, maxp, Scalar(0, 0, 255));
 
-    if (maxtemp > fireThresholdCelcius) {
+    if (maxtemp > fireThresholdCelcius)
+    {
         draw_text(outframe, fireWarningText, maxp + Point(-1, -1), Scalar(255, 255, 255));
         draw_text(outframe, fireWarningText, maxp + Point(1, 1), Scalar(0, 0, 0));
         draw_text(outframe, fireWarningText, maxp + Point(0, 0), Scalar(0, 0, 255));
@@ -206,26 +214,76 @@ std::stringstream getTime()
     return stringStream;
 }
 
-void connectToServer(sf::TcpSocket &socket, const char *remoteAddress, const int remotePort)
+void connect(sf::TcpSocket &socket, const char *remoteAddress, const int remotePort)
 {
-    socket.disconnect();
-
-    printf("Attempting to connect to %s:%d\n", remoteAddress, remotePort);
+    printf("Attempting to connect...\n");
 
     while (true)
     {
         if (socket.connect(remoteAddress, remotePort) == sf::Socket::Done)
         {
+            printf("Successfully connected...\n");
             break;
         }
     }
-
-    printf("Successfully connected.");
-
-    isConnectedToServer = true;
 }
 
-int main(int argc, char **argv)
+void printSocketStatus(sf::Socket::Status &socketStatus)
+{
+    switch (socketStatus)
+    {
+    case sf::Socket::Done:
+        printf("DONE.\n");
+        break;
+    case sf::Socket::NotReady:
+        printf("NOT_READY.\n");
+        break;
+    case sf::Socket::Partial:
+        printf("PARTIAL.\n");
+        break;
+    case sf::Socket::Disconnected:
+        printf("DISCONNECTED.\n");
+        break;
+    case sf::Socket::Error:
+        printf("ERROR.\n");
+        break;
+    default:
+        printf("UNKNOWN.\n");
+        break;
+    }
+}
+
+bool sendImage(sf::TcpSocket &socket, std::vector<uchar> &buffer, cv::Mat &source)
+{
+    cv::imencode("image.jpeg", source, buffer);
+    unsigned long imageSize = buffer.size() * sizeof(uchar);
+
+    char imageSizeText[100];
+    sprintf(imageSizeText, ":::%0.10lu", imageSize);
+
+    sf::Socket::Status socketStatus;
+
+    socketStatus = socket.send(imageSizeText, strlen(imageSizeText));
+    if ((socketStatus == sf::Socket::Disconnected) || (socketStatus == sf::Socket::Error))
+    {
+        return false;
+    }
+
+    socketStatus = socket.send(&buffer[0], imageSize);
+    if ((socketStatus == sf::Socket::Disconnected) || (socketStatus == sf::Socket::Error))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+void printConnectingToServerInfo() {
+    std::cout << "Diconnected from the server." << std::endl;
+    std::cout << "Attempting to connect to the server..." << std::endl;
+}
+
+int main(int argc, char const *argv[])
 {
     args::ArgumentParser parser("Seek Thermal Data Streamer");
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
@@ -282,92 +340,82 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    // Variables for socket mode
-    sf::TcpSocket socket;
-    const char *remoteAddress = nullptr;
-    int remotePort = -1;
-
-    // Variables for window mode
-    cv::String windowName = "Display Window";
-
+    /* Will be retrieved from cli arguments */
+    const char *remoteAddress = DEFAULT_HOST;
+    int remotePort = DEFAULT_PORT;
     if (arg_target_host && arg_target_port)
     {
-        isWindowMode = false;
         remoteAddress = args::get(arg_target_host).c_str();
         remotePort = std::stoi(args::get(arg_target_port));
     }
-    else
-    {
-        std::cout << "Operating in window mode." << std::endl;
 
-        namedWindow(windowName, 0x00000000 /* WINWOD_NORMAL */);
-        setWindowProperty(windowName, 2 /* WND_PROP_ASPECT_RATIO */, 0x00000000 /* WINDOW_KEEPRATIO */);
-        resizeWindow(windowName, seekFrame.cols, seekFrame.rows);
-    }
+    bool isConnected = false;
+    sf::TcpSocket socket;
 
-    // Main loop to retrieve frames from camera and output
+    std::vector<uchar> imageBuffer;
+    sf::Socket::Status socketStatus;
+
+    char receivedData[100];
+    std::size_t receivedCount;
+    std::size_t receivedCountSum = 0;
+
+    auto mode = OperationMode::ConnectToServer;
+    auto num = 1;
+
     while (!sigflag)
     {
-        if (!isConnectedToServer && !isWindowMode)
+        switch (mode)
         {
-            connectToServer(socket, remoteAddress, remotePort);
-        }
+        case OperationMode::ConnectToServer:
+            if (socket.connect(remoteAddress, remotePort) == sf::Socket::Done) {
+                std::cout << "Successfully connected." << std::endl;
+                mode = OperationMode::WaitForCommand;
+            }
+            
+            break;
+        case OperationMode::WaitForCommand:
 
-        // If signal for interrupt/termination was received, break out of main loop and exit
-        if (!seek->read(seekFrame))
-        {
-            return -1;
-        }
+            if (socket.receive(receivedData, 1, receivedCount) != sf::Socket::Done) {
+                mode = OperationMode::ConnectToServer;
+                printConnectingToServerInfo();
+                break;
+            }
 
-        // Retrieve frame from seek and process
-        process_frame(seekFrame, outFrame, 3.0f, 11, 0, seek->device_temp_sensor());
+            receivedCountSum += receivedCount;
+            
+            if (receivedCount >= 1) {
+                mode = OperationMode::SendImage;
+                receivedCountSum = 0;
+                break;
+            }
 
-        cv::putText(
-            outFrame,
-            getTime().str(),
-            Point(10, 30),
-            FONT_HERSHEY_COMPLEX,
-            1,
-            Scalar(0, 0, 0),
-            1.5, /* Thickness */
-            CustomLineTypes::LINE_AA);
-
-        if (!isWindowMode)
-        {
-            std::vector<uchar> imageBuffer;
-            imencode("image.jpeg", outFrame, imageBuffer);
-
-            unsigned long imageSize = imageBuffer.size() * sizeof(uchar);
-            char imageSizeText[100];
-            sprintf(imageSizeText, ":::%0.10lu", imageSize);
-
-            if (isConnectedToServer && socket.send(imageSizeText, strlen(imageSizeText)) != sf::Socket::Done)
+            break;
+        case OperationMode::SendImage:
+            /* If signal for interrupt/termination was received, break out of main loop and exit */
+            if (!seek->read(seekFrame))
             {
-                isConnectedToServer = false;
+                mode = OperationMode::Exit;
+                break;
             }
 
-            if (isConnectedToServer && socket.send(&imageBuffer[0], imageSize) != sf::Socket::Done)
-            {
-                isConnectedToServer = false;
-            }
-        }
-        else
-        {
-            auto key = cv::waitKey(10);
+            process_frame(seekFrame, outFrame, 3.0f, 11, 0, seek->device_temp_sensor());
 
-            if (key == 's') {
-                const auto now = std::chrono::system_clock::now();
-                auto imageCode = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
-                char fileName[100];
-                sprintf(fileName, "%lu.jpeg", imageCode);
-                printf("Attempting to save image as %s.\n", fileName);
-                cv::imwrite(fileName, outFrame);
+            if (!sendImage(socket, imageBuffer, outFrame)) {
+                mode = OperationMode::ConnectToServer;
+                printConnectingToServerInfo();
+                break;
             }
-
-            cv::imshow(windowName, outFrame);
+            
+            mode = OperationMode::WaitForCommand;
+            break;
+        case OperationMode::Exit:
+            goto exit_loop;
+        default:
+            break;
         }
     }
 
-    std::cout << "Break signal detected, exiting" << std::endl;
+    exit_loop: ;
+
     return 0;
 }
