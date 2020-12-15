@@ -6,10 +6,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 find_package( OpenCV REQUIRED )
 
-link_directories(
-        /home/atomicbomber/clones/undera-libseek-thermal/build/src
-)
-
 link_libraries(
         seek_static
         boost_program_options
@@ -28,7 +24,6 @@ add_executable(streamer streamer.cpp args.h)
 
 
 include_directories(
-        /home/atomicbomber/clones/undera-libseek-thermal/src
         ${OpenCV_INCLUDE_DIRS}
         /usr/include/libusb-1.0
 )

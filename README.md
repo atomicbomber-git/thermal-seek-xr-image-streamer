@@ -1,5 +1,12 @@
 # Setup
 
+## TL;DR Quick Install:
+```bash
+# Run inside the project directory
+chmod +x install.sh
+./install.sh
+```
+
 ## Dependencies for Running
 - libusb-1.0-0-dev
 - libboost-program-options-dev
