@@ -34,8 +34,8 @@ enum OperationMode
 const auto DEFAULT_HOST = "127.0.0.1";
 const auto DEFAULT_PORT = 9000;
 
-auto fireWarningText = "WARNING";
-auto fireThresholdCelcius = 45;
+auto fireWarningText = "DEMAM";
+auto fireThresholdCelcius = 35;
 void connectToServer(sf::TcpSocket &socket, const char *remoteAddress, const int remotePort);
 
 std::stringstream getTime();
@@ -367,6 +367,8 @@ int main(int argc, char const *argv[])
         switch (mode)
         {
         case OperationMode::ConnectToServer:
+            std::cout << "Connecting to server..." << std::endl;
+
             if (socket.connect(remoteAddress, remotePort) == sf::Socket::Done) {
                 std::cout << "Successfully connected." << std::endl;
                 mode = OperationMode::WaitForCommand;
@@ -374,6 +376,7 @@ int main(int argc, char const *argv[])
             
             break;
         case OperationMode::WaitForCommand:
+            std::cout << "Waiting for command" << std::endl;
 
             if (socket.receive(receivedData, 1, receivedCount) != sf::Socket::Done) {
                 mode = OperationMode::ConnectToServer;
@@ -391,6 +394,8 @@ int main(int argc, char const *argv[])
 
             break;
         case OperationMode::SendImage:
+            std::cout << "Sending image" << std::endl;
+
             /* If signal for interrupt/termination was received, break out of main loop and exit */
             if (!seek->read(seekFrame))
             {
@@ -409,6 +414,7 @@ int main(int argc, char const *argv[])
             mode = OperationMode::WaitForCommand;
             break;
         case OperationMode::Exit:
+            std::cout << "Exiting" << std::endl;
             goto exit_loop;
         default:
             break;
