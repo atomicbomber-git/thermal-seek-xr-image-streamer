@@ -7,7 +7,23 @@ chmod +x install.sh
 ./install.sh
 ```
 
-## Dependencies for Running
+## How to Use
+```text
+  ./streamer {OPTIONS}
+
+    Seek Thermal Data Streamer
+
+  OPTIONS:
+
+      -h, --help                        Display this help menu
+      --host=[arg_target_host]          Target host
+      --port=[arg_target_port]          Target port
+      --preadd=[arg_preadd]             Pre-Addition Temp Shift
+      --postadd=[arg_postadd]           Post-Addition Temp Shift
+      --multiplier=[arg_multiplier]     Multiplier for Temp
+```
+
+## Dependencies for Compiling
 - libusb-1.0-0-dev
 - libboost-program-options-dev
 - libboost-system-dev
