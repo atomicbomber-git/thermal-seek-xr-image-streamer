@@ -23,18 +23,16 @@ chmod +x install.sh
       --multiplier=[arg_multiplier]     Multiplier for Temp
 ```
 
-## Dependencies for Compiling
+## Dependencies for Manual Compilation
 - libusb-1.0-0-dev
 - libboost-program-options-dev
 - libboost-system-dev
 - libboost-filesystem-dev
 - libsfml-dev
 - libopencv-dev
-
-## Dependencies for Compiling 
 - build-essential
 - cmake
-- git@github.com:atomicbomber-git/libseek-thermal.git
+- libseek from git@github.com:atomicbomber-git/libseek-thermal.git
 
 Modify this project's CmakeLists.txt accordingly to point to the headers in `libseek-thermal`'s directory.
 
