@@ -393,7 +393,7 @@ int main(int argc, char const *argv[])
             writeLogMessage("Connecting to server...");
 
             if (socket.connect(remoteAddress, remotePort) == sf::Socket::Done) {
-                std::cout << "Successfully connected." << std::endl;
+                writeLogMessage("Successfully connected.");
                 mode = OperationMode::WaitForCommand;
             }
             
