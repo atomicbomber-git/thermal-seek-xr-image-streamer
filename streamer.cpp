@@ -283,6 +283,10 @@ void printConnectingToServerInfo() {
     std::cout << "Attempting to connect to the server..." << std::endl;
 }
 
+void writeLogMessage(char const *logMessage) {
+    // std::cout << logMessage << std::endl;
+}
+
 int main(int argc, char const *argv[])
 {
     args::ArgumentParser parser("Seek Thermal Data Streamer");
@@ -367,7 +371,7 @@ int main(int argc, char const *argv[])
         switch (mode)
         {
         case OperationMode::ConnectToServer:
-            std::cout << "Connecting to server..." << std::endl;
+            writeLogMessage("Connecting to server...");
 
             if (socket.connect(remoteAddress, remotePort) == sf::Socket::Done) {
                 std::cout << "Successfully connected." << std::endl;
@@ -376,7 +380,7 @@ int main(int argc, char const *argv[])
             
             break;
         case OperationMode::WaitForCommand:
-            std::cout << "Waiting for command" << std::endl;
+            writeLogMessage("Waiting for command.");
 
             if (socket.receive(receivedData, 1, receivedCount) != sf::Socket::Done) {
                 mode = OperationMode::ConnectToServer;
@@ -394,7 +398,7 @@ int main(int argc, char const *argv[])
 
             break;
         case OperationMode::SendImage:
-            std::cout << "Sending image" << std::endl;
+            writeLogMessage("Sending image...");
 
             /* If signal for interrupt/termination was received, break out of main loop and exit */
             if (!seek->read(seekFrame))
@@ -403,7 +407,7 @@ int main(int argc, char const *argv[])
                 break;
             }
 
-            process_frame(seekFrame, outFrame, 3.0f, 11, 0, seek->device_temp_sensor());
+            process_frame(seekFrame, outFrame, 4.0f, 11, 90, seek->device_temp_sensor());
 
             if (!sendImage(socket, imageBuffer, outFrame)) {
                 mode = OperationMode::ConnectToServer;
@@ -414,7 +418,7 @@ int main(int argc, char const *argv[])
             mode = OperationMode::WaitForCommand;
             break;
         case OperationMode::Exit:
-            std::cout << "Exiting" << std::endl;
+            writeLogMessage("Exiting...");
             goto exit_loop;
         default:
             break;
