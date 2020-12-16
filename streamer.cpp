@@ -34,6 +34,10 @@ enum OperationMode
 const auto DEFAULT_HOST = "127.0.0.1";
 const auto DEFAULT_PORT = 9000;
 
+double preAdd = -32.0;
+double multiplier = 5.0 / 9.0;
+double postAdd = 0;
+
 auto fireWarningText = "DEMAM";
 auto fireThresholdCelcius = 35;
 void connectToServer(sf::TcpSocket &socket, const char *remoteAddress, const int remotePort);
@@ -68,7 +72,7 @@ double temp_from_raw(int x, double device_k)
     double lin_offset = -470.8979; // same Excel model
 
     auto fahrenheit = base - device_k * lin_k + lin_offset - 273.0;
-    return (fahrenheit - 32.0) * 5.0 / 9.0;
+    return ((fahrenheit + preAdd) * multiplier) + postAdd;
 }
 
 void overlay_values(Mat &outframe, Point coord, const Scalar &color)
@@ -293,6 +297,9 @@ int main(int argc, char const *argv[])
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
     args::ValueFlag<std::string> arg_target_host(parser, "arg_target_host", "Target host", {"host"});
     args::ValueFlag<std::string> arg_target_port(parser, "arg_target_port", "Target port", {"port"});
+    args::ValueFlag<std::string> arg_preadd(parser, "arg_preadd", "Pre-Addition Temp Shift", {"preadd"});
+    args::ValueFlag<std::string> arg_postadd(parser, "arg_postadd", "Post-Addition Temp Shift", {"postadd"});
+    args::ValueFlag<std::string> arg_multiplier(parser, "arg_multiplier", "Multiplier for Temp", {"multiplier"});
 
     // Parse command line arguments
     try
@@ -315,6 +322,18 @@ int main(int argc, char const *argv[])
         std::cerr << e.what() << std::endl;
         std::cerr << parser;
         return 1;
+    }
+
+    if (arg_preadd) {
+        preAdd = std::stod(args::get(arg_preadd));
+    }
+
+    if (arg_postadd) {
+        postAdd = std::stod(args::get(arg_postadd));
+    }
+
+    if (arg_multiplier) {
+        multiplier = std::stod(args::get(arg_multiplier));
     }
 
     // Register signals
